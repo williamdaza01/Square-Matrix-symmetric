@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <mpi.h>
+#include <stdlib.h>
 
 MPI_Status status;
 
@@ -20,9 +21,9 @@ int main(int argc, char const *argv[])
     {
 
         printf("\nEnter the dimension of the matrix: \n\n");
-        scanf("%d", &n);
+        scanf("%d", &N);
 
-        printf("\nEnter the %d elements of the matrix: \n\n", n * n);
+        printf("\nEnter the %d elements of the matrix: \n\n", N * N);
         for (i = 0; i < N; i++)     // to iterate the rows
             for (j = 0; j < N; j++) // to iterate the columns
                 scanf("%d", &a[i][j]);
