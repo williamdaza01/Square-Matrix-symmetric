@@ -5,7 +5,7 @@
 
 MPI_Status status;
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
     double start, stop;
     int N = atof(argv[1]);
