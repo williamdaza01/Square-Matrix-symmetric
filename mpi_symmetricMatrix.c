@@ -7,8 +7,21 @@ MPI_Status status;
 
 int main(int argc, char *argv[])
 {
+    if(argc != 2) {
+        printf("usage: %s n\n");
+        exit(1);
+    }
+
     double start, stop;
-    int N = atof(argv[1]);
+    int N = atoi(argv[1]);
+    int *a[N];
+    for(int w=0; w<N; w++){
+        a[w] = (int*)malloc(N*sizeof(int));
+    }
+    int *b[N];
+    for(int w=0; w<N; w++){
+        b[w] = (int*)malloc(N*sizeof(int));
+    }
     int i, j, a[N][N], b[N][N], temp, source, numtasks, taskid, numworkers, offset, dest, rows;
 
     MPI_Init(&argc, &argv);
