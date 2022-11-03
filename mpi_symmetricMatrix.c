@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include <stdio.h>
 #include <time.h>
 #include <mpi.h>
 
@@ -6,74 +6,101 @@ MPI_Status status;
 
 int main(int argc, char const *argv[])
 {
-    printf("\n\n\t\tStudytonight - Best place to learn\n\n\n");
-
-    int c, d, a[10][10], b[10][10], n, temp, numtasks, taskid, numworkers;
-
+    double start, stop;
+    int N = atof(argv[1]);
+    int i, j, a[N][N], b[N][N], temp, source, numtasks, taskid, numworkers, offset, dest, rows;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 
-    numworkers=numtasks-1;
+    numworkers = numtasks - 1;
 
-    printf("\nEnter the dimension of the matrix: \n\n");
-    scanf("%d", &n);
-
-    printf("\nEnter the %d elements of the matrix: \n\n",n*n);
-    for(c = 0; c < n; c++) // to iterate the rows
-        for(d = 0; d < n; d++) // to iterate the columns
-            scanf("%d", &a[c][d]);
-
-    // finding transpose of a matrix and storing it in b[][]
-    for(c = 0; c < n; c++) // to iterate the rows
-        for(d = 0; d < n; d++) //to iterate the columns
-            b[d][c] = a[c][d];
-
-    // printing the original matrix
-    printf("\n\nThe original matrix is: \n\n");
-    for(c = 0; c < n; c++)   // to iterate the rows
+    if (taskid == 0)
     {
-        for(d = 0; d < n; d++)   // to iterate the columns
+
+        printf("\nEnter the dimension of the matrix: \n\n");
+        scanf("%d", &n);
+
+        printf("\nEnter the %d elements of the matrix: \n\n", n * n);
+        for (i = 0; i < N; i++)     // to iterate the rows
+            for (j = 0; j < N; j++) // to iterate the columns
+                scanf("%d", &a[i][j]);
+
+        for (i = 0; i < N; i++)     // to iterate the rows
+            for (j = 0; j < N; j++) // to iterate the columns
+                b[i][j] = a[i][j];
+
+        start = MPI_Wtime();
+
+        rows = N / numworkers;
+        offset = 0;
+
+        for (dest = 1; dest <= numworkers; dest++)
         {
-            printf("%d\t", a[c][d]);
+            MPI_Send(&offset, 1, MPI_INT, dest, 1, MPI_COMM_WORLD);
+            MPI_Send(&rows, 1, MPI_INT, dest, 1, MPI_COMM_WORLD);
+            MPI_Send(&a[offset][0], rows * N, MPI_DOUBLE, dest, 1, MPI_COMM_WORLD);
+            MPI_Send(&b, N * N, MPI_DOUBLE, dest, 1, MPI_COMM_WORLD);
+            offset = offset + rows;
         }
-    printf("\n");
-    }
 
-    // printing the transpose of the entered matrix
-    printf("\n\nThe Transpose matrix is: \n\n");
-    for(c = 0; c < n; c++) // to iterate the rows
-    {
-        for(d = 0; d < n; d++)   // to iterate the columns
+        for (i = 1; i <= numworkers; i++)
         {
-            printf("%d\t", b[c][d]);
+            source = i;
+            MPI_Recv(&offset, 1, MPI_INT, source, 2, MPI_COMM_WORLD, &status);
+            MPI_Recv(&rows, 1, MPI_INT, source, 2, MPI_COMM_WORLD, &status);
         }
-        printf("\n");
-    }
 
-    // checking if the original matrix is same as its transpose
-    for(c = 0; c < n; c++)   // to iterate the rows
-    {
-        for(d = 0; d < n; d++)   // to iterate the columns
+        stop = MPI_Wtime();
+
+        printf("\n\nThe original matrix is: \n\n");
+        for (i = 0; i < N; i++) // to iterate the rows
         {
-            /* 
-                even if they differ by a single element, 
-                the matrix is not symmetric
-            */
-            if(a[c][d] != b[c][d]) 
+            for (j = 0; j < N; j++) // to iterate the columns
             {
-                printf("\n\nMatrix is not Symmetric\n\n");
-                exit(0);    // a system defined method to terminate the program
+                printf("%d\t", a[i][j]);
+            }
+            printf("\n");
+        }
+
+        printf("TOTAL time: %lf\n", stop - start);
+    }
+
+    if (taskid > 0)
+    {
+        source = 0;
+        MPI_Recv(&offset, 1, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
+        MPI_Recv(&rows, 1, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
+        MPI_Recv(&a, rows * N, MPI_DOUBLE, source, 1, MPI_COMM_WORLD, &status);
+        MPI_Recv(&b, N * N, MPI_DOUBLE, source, 1, MPI_COMM_WORLD, &status);
+
+        printf("\n\nThe Transpose matrix is: \n\n");
+        for (i = 0; i < N; i++) // to iterate the rows
+        {
+            for (j = 0; j < N; j++) // to iterate the columns
+            {
+                printf("%d\t", b[i][j]);
+            }
+            printf("\n");
+        }
+
+        for (i = 0; i < N; i++) // to iterate the rows
+        {
+            for (j = 0; j < N; j++) // to iterate the columns
+            {
+                if (a[i][j] != b[i][j])
+                {
+                    printf("\n\nMatrix is not Symmetric\n\n");
+                    exit(0); // a system defined method to terminate the program
+                }
             }
         }
-    }
 
-    /* 
-        if the program is not terminated yet, 
-        it means the matrix is symmetric
-    */
-    printf("\n\nMatrix is Symmetric\n\n");
-    printf("\n\n\t\t\tCoding is Fun !\n\n\n");
+        printf("\n\nMatrix is Symmetric\n\n");
+        MPI_Send(&offset, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
+        MPI_Send(&rows, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
+    }
+    MPI_Finalize();
     return 0;
 }
